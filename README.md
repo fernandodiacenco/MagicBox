@@ -115,9 +115,10 @@ The best way to check if its working ig disabling SQM on both interfaces, going 
 <b>INSERTING THE BOX ON YOUR NETWORK</b>
 The magic box would sit between the main router and the rest of the network, so in this case I am assuming a simple switch for this diagram
 
-INTERNET - MAIN ROUTER <patch cord on the WAN interface> MAGIC BOX <patch cord on the LAN interface> SWITCH - DEVICES
+INTERNET - MAIN ROUTER <b><patch cord on the WAN interface> MAGIC BOX <patch cord on the LAN interface></b> SWITCH - DEVICES
 
 This way all the traffic must pass trough the box, but it is still reachable to configure/adjust by the IP address you assigned to it
+
 ---
 <b>CONCLUSION</b>
 
@@ -133,6 +134,7 @@ On the Link Layer Adaptation tab you can adjust the values to be more exact to y
 
 ---
 <b>REFERENCES</b>
+
 https://forum.openwrt.org/t/transparent-cake-box/2161/23
 
 https://forum.openwrt.org/t/transparent-cake-box-where-to-apply-sqm/78698
