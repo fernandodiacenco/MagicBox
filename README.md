@@ -57,10 +57,86 @@ First I recommend that on yout main router you configure your dhcp settings to d
 
 Then decide what IP address will be assigned to the box, this is just for managing it when necessary and has no value in connectivity since it will be transparent of the network
 
-So lets say it is: 192.168.1.1, access it on your browser
+So lets say your primary router is on IP 192.168.1.1 and you choose for the SQM the IP 192.168.1.2, access this IP on your browser (http://192.168.1.2)
 
 Go to SYSTEM -> SYSTEM and change the HOSTNAME to something more apropriate, for example MAGICBOX or SQM or whatever you decide
 
-Go to SYSTEM -> ADMINISTRATION And change your router password
+Go to SYSTEM -> ADMINISTRATION And change your root password
 
-Go to NETWORK -> INTERFACES and now the fun begins...
+Go to NETWORK -> WIRELESS and delete the wireless interface, it is not needed
+
+Go to NETWORK -> INTERFACES and delete the WAN6 Interface, it is not needed
+
+Add New Interface -> Name: BRIDGE - Protocol: Static, IP: 192.168.1.2, MASK 255.255.255.0, Containing the interfaces: Eth0 & Eth0.1
+
+Save and apply, and now check if you can still access the IP
+
+---
+<b>CONFIGURING THE SQM</b>
+
+Now this is the magic part in the magic box, the SQM (Smart Queue Management) is what will make the connection better
+
+Usually you just instantiate the SQM on the WAN interface, defining Download and Upload Speed and the Scheduler and be done with it
+
+BUT there is a catch: If you instantiate the SQM on both WAN and LAN interfaces in one direction only (EGRESS) you bypass the IFB (usually used if you have a wireless interface on the same router) and you beneffit from about 5% less overhead, making the connection more efficient
+
+ANOTHER catch: This trick is for a box where traffic passes TROUGH it, if you are for example hosting something IN the box, the SQM cannot properly calculate the traffic and you are better served instantiating sqm on the WAN interface with download/upload, But in this example the box is transparent and not hosting anything
+
+So, Go to NETWORK -> SQM
+
+    Select WAN Interface
+    Check [x] Enable SQM
+    Set Download Speed to 0 (Disable)
+    Set Upload Speed to your UPLOAD speed in bits, for example 10000 equals to 10mbps
+    Go to Queue Discipline and select Cake / Piece of Cake
+	  Check [x] Show and use advanced config
+	  Then Check [x] Show and Use Dangerous Configuration.
+	  Advanced option string to pass to the egress queueing disciplines: <b>dual-srchost</b>
+    Go to Link Layer Adaptaton Tab
+    Select Which link layer to account for: Ethernet with Overhead
+    Per Packet Overhead (byte): 44
+	
+    Now click ADD and select LAN interface
+    Check [x] Enable SQM
+    Set Download speed to 0 (disable)  
+    Set Upload Speed to your DOWNLOAD speed in bits, for example 20000 equals do 20mbps
+    Go to Queue Discipline and select Cake / Piece of Cake
+	  Check [x] Show and use advanced config
+	  Then Check [x] Show and Use Dangerous Configuration.
+	  Advanced option string to pass to the egress queueing disciplines: <b>dual-dsthost</b>
+    Select Which link layer to account for: Ethernet with Overhead
+    Per Packet Overhead (byte): 44
+
+Save and apply
+
+The best way to check if its working ig disabling SQM on both interfaces, goind to https://dslreports.com/speedtest, running the test and making note of the "bufferbloat" at the end, enabling SQM again, and re-running the test, the bufferbloat score should have increased from whatever was previous to an A+
+
+---
+<b>INSERTING THE BOX ON YOUR NETWORK</b>
+The magic box would sit between the main router and the rest of the network, so in this case I am assuming a simple switch for this diagram
+
+INTERNET - MAIN ROUTER <patch cord on the WAN interface> MAGIC BOX <patch cord on the LAN interface> SWITCH - DEVICES
+
+This way all the traffic must pass trought the box, but it is still reachable to configure/adjust by the IP address you assigned to it
+---
+<b>CONCLUSION</b>
+
+You can use this box in any Openwrt box, may it be an access point or a x86-64 box to improve your connection, it would work even without LUCI (the graphical user interface of openwrt) as long as you have the sqm-scripts package installed and can configure the system over ssh
+
+In my experience I use a bunch of old TPLink wr740n v4/v5/v6 routers and Magix Boxes, they are limited to 100mbps at the lan so this would be the maximum download/upload it can achieve, and so far I din't suffer from speed constraints due to CPU usage on saturated network activity, but your mileage may vary
+
+I also have two magic boxes in virtual machines at work, running as transparent bridge, no problems so far
+
+You can play aroung with the configuration to find the absolute best option for you, for example in the queue discipline tab you can choose Layer_Cake instead of Piece_of_Cake if you have a more powerfull router/machine, or you can choose simple.qos or simplest.qos if you are suffering from CPU constraints, perhaps even choosing fq_codel instead of cake
+
+On the Link Layer Adaptation tab you can adjust the values to be more exact to your environment, but in thie case either be sure or overertimate, it is always better to overestimate the linklayer than to underestimate, it is not that the box will stop working and the world will end if you underestimate, but it will be less efficient if you do
+
+---
+<b>REFERENCES</b>
+https://forum.openwrt.org/t/transparent-cake-box/2161/23
+
+https://forum.openwrt.org/t/transparent-cake-box-where-to-apply-sqm/78698
+
+https://openwrt.org/docs/guide-user/network/traffic-shaping/sqm-details
+
+https://github.com/moeller0/ATM_overhead_detector
